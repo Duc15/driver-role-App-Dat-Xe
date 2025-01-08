@@ -1,10 +1,11 @@
-import 'package:drivers_app/pages/trips_history_page.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 class TripsPage extends StatefulWidget {
+  const TripsPage({super.key});
+
   @override
   State<TripsPage> createState() => _TripsPageState();
 }
