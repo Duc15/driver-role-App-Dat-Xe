@@ -1,3 +1,4 @@
+import 'package:drivers_app/pages/trips_history_page.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
@@ -81,7 +82,6 @@ class _TripsPageState extends State<TripsPage> {
 
   @override
   void initState() {
-    // TODO: implement initState
     super.initState();
     getTotalEarningsOfCurrentDriver();
     getCurrentDriverTotalNumberOfTripsCompleted();
@@ -89,11 +89,16 @@ class _TripsPageState extends State<TripsPage> {
 
   @override
   Widget build(BuildContext context) {
+    // Calculate bottom padding to avoid bottom navigation bar overlap
+    double bottomPadding = MediaQuery.of(context).viewInsets.bottom > 0
+        ? MediaQuery.of(context).viewInsets.bottom
+        : 16.0;
+
     return Scaffold(
       body: SafeArea(
         child: Column(
           children: [
-            // Phần tiêu đề và thành phố
+            // Header with the city name
             Padding(
               padding: const EdgeInsets.all(16.0),
               child: Column(
@@ -124,11 +129,11 @@ class _TripsPageState extends State<TripsPage> {
               ),
             ),
 
-            // Hình ảnh nền
+            // Background image
             Expanded(
               child: Stack(
                 children: [
-                  // Hình ảnh nền
+                  // Background image
                   Container(
                     decoration: const BoxDecoration(
                       image: DecorationImage(
@@ -137,7 +142,7 @@ class _TripsPageState extends State<TripsPage> {
                       ),
                     ),
                   ),
-                  // Gradient mờ dần ở trên
+                  // Gradient overlay
                   Container(
                     decoration: const BoxDecoration(
                       gradient: LinearGradient(
@@ -150,150 +155,115 @@ class _TripsPageState extends State<TripsPage> {
                   Align(
                     alignment: Alignment.bottomCenter,
                     child: Container(
-                      height: 180,
-                      padding: const EdgeInsets.only(
-                          top: 16, right: 16, left: 16, bottom: 2),
+                      height: 250,
+                      padding: EdgeInsets.only(
+                        top: 16,
+                        right: 16,
+                        left: 16,
+                        bottom: bottomPadding, // Adjust bottom padding
+                      ),
                       decoration: const BoxDecoration(
-                        // color: Colors.white,
                         borderRadius: BorderRadius.only(
                           topLeft: Radius.circular(24),
                           topRight: Radius.circular(24),
                         ),
                       ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      child: Column(
                         children: [
-                          // Cột thời tiết
-                          _buildWeatherCard(),
-                          const SizedBox(width: 16),
-                          // Cột thông tin chuyến bay
-                          _buildFlightInfoCard(),
+                          // Total Trips Card
+                          GestureDetector(
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) =>
+                                      const TripsHistoryPage(),
+                                ),
+                              );
+                            },
+                            child: _buildInfoCard(
+                              "Tổng số chuyến",
+                              currentDriverTotalTripsCompleted,
+                              Icons.sunny,
+                              Colors.blue,
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          // Total Earnings Card
+                          GestureDetector(
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) =>
+                                      const TripsHistoryPage(),
+                                ),
+                              );
+                            },
+                            child: _buildInfoCard(
+                              "Tổng thu nhập",
+                              "$driverEarningsVND đ",
+                              Icons.car_repair,
+                              Colors.green,
+                            ),
+                          ),
                         ],
                       ),
                     ),
                   ),
-                  // Gradient mờ dần ở dưới
-                  // Align(
-                  //   alignment: Alignment.bottomCenter,
-                  //   child: Container(
-                  //     height: 250, // Chiều cao của gradient dưới
-                  //     decoration: const BoxDecoration(
-                  //       gradient: LinearGradient(
-                  //         colors: [Colors.transparent, Colors.white],
-                  //         begin: Alignment.topCenter,
-                  //         end: Alignment.bottomCenter,
-                  //       ),
-                  //     ),
-                  //   ),
-                  // ),
                 ],
               ),
             ),
-
-            // Phần thông tin chi tiết
           ],
         ),
       ),
     );
   }
 
-  Widget _buildWeatherCard() {
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Colors.blue[50],
-          borderRadius: BorderRadius.circular(16),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              "Tổng số chuyến",
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              formattedTime,
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.grey[600],
-              ),
-            ),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                const Icon(
-                  Icons.sunny,
-                  color: Colors.blue,
-                  size: 28,
-                ),
-                const Spacer(),
-                Text(
-                  currentDriverTotalTripsCompleted,
-                  style: const TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
+  Widget _buildInfoCard(
+    String title,
+    String value,
+    IconData icon,
+    Color iconColor,
+  ) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.blue[50],
+        borderRadius: BorderRadius.circular(16),
       ),
-    );
-  }
-
-  Widget _buildFlightInfoCard() {
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Colors.grey[200],
-          borderRadius: BorderRadius.circular(16),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              "Tổng thu nhập",
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              "Hà Đông, Hà Nội",
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.grey[600],
-              ),
-            ),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                const Icon(
-                  Icons.car_repair,
-                  color: Colors.blue,
-                  size: 28,
+      child: Row(
+        children: [
+          Icon(
+            icon,
+            color: iconColor,
+            size: 28,
+          ),
+          const SizedBox(width: 16),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
                 ),
-                const Spacer(),
-                Text(
-                  "$driverEarningsVND đ",
-                  style: const TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.green,
-                  ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                value,
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
                 ),
-              ],
-            ),
-          ],
-        ),
+              ),
+            ],
+          ),
+          const Spacer(),
+          const Icon(Icons.arrow_forward_ios, size: 20, color: Colors.grey),
+        ],
       ),
     );
   }
