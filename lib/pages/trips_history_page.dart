@@ -82,6 +82,17 @@ class _TripsHistoryPageState extends State<TripsHistoryPage> {
                 String formattedFareVND =
                     NumberFormat("#,##0", "en_US").format(fareVND);
 
+                // Lấy thời gian kết thúc chuyến đi
+                String paymentStartTime =
+                    tripsList[index]["paymentStartTime"] ?? "";
+                DateTime? endDateTime;
+                if (paymentStartTime.isNotEmpty) {
+                  endDateTime = DateTime.tryParse(paymentStartTime);
+                }
+                String formattedEndTime = endDateTime != null
+                    ? DateFormat("dd/MM/yyyy HH:mm").format(endDateTime)
+                    : "";
+
                 return Padding(
                   padding: const EdgeInsets.all(8.0),
                   child: Card(
@@ -116,30 +127,25 @@ class _TripsHistoryPageState extends State<TripsHistoryPage> {
                                 child: Text(
                                   tripsList[index]["pickUpAddress"].toString(),
                                   overflow: TextOverflow.ellipsis,
+                                  maxLines:
+                                      2, // Allowing two lines for pick-up address
+                                  softWrap:
+                                      true, // Enabling soft wrap for text overflow
                                   style: const TextStyle(
                                     fontSize: 18,
                                     color: Colors.black,
                                   ),
                                 ),
                               ),
-                              const SizedBox(
-                                width: 5,
-                              ),
-                              Text(
-                                "$formattedFareVND VND",
-                                style: const TextStyle(
-                                  fontSize: 16,
-                                  color: Colors.green,
-                                ),
-                              ),
                             ],
                           ),
+                          // Row for displaying fare amount
 
                           const SizedBox(
                             height: 8,
                           ),
 
-                          //dropoff
+                          //dropoff - in a separate row
                           Row(
                             children: [
                               Image.asset(
@@ -154,10 +160,49 @@ class _TripsHistoryPageState extends State<TripsHistoryPage> {
                                 child: Text(
                                   tripsList[index]["dropOffAddress"].toString(),
                                   overflow: TextOverflow.ellipsis,
+                                  maxLines:
+                                      2, // Allowing two lines for drop-off address
+                                  softWrap:
+                                      true, // Enabling soft wrap for text overflow
                                   style: const TextStyle(
                                     fontSize: 18,
                                     color: Colors.black,
                                   ),
+                                ),
+                              ),
+                            ],
+                          ),
+
+                          const SizedBox(
+                            height: 8,
+                          ),
+
+                          // Thêm thời gian kết thúc
+                          Row(
+                            children: [
+                              const Icon(
+                                Icons.access_time,
+                                color: Colors.blue,
+                                size: 20,
+                              ),
+                              const SizedBox(width: 10),
+                              Text(
+                                "Thời gian kết thúc: $formattedEndTime",
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  color: Colors.black,
+                                ),
+                              ),
+                            ],
+                          ),
+                          Row(
+                            children: [
+                              const SizedBox(width: 30), // To align fare
+                              Text(
+                                "+$formattedFareVND VND",
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  color: Colors.green,
                                 ),
                               ),
                             ],
