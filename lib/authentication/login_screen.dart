@@ -20,18 +20,14 @@ class _LoginScreenState extends State<LoginScreen> {
   TextEditingController passwordTextEditingController = TextEditingController();
   CommonMethods cMethods = CommonMethods();
 
+  final _formKey = GlobalKey<FormState>();
+  String? _emailError;
+  String? _passwordError;
+  bool _isPasswordVisible = false;
+
   checkIfNetworkIsAvailable() {
     cMethods.checkConnectivity(context);
-
-    signInFormValidation();
-  }
-
-  signInFormValidation() {
-    if (!emailTextEditingController.text.contains("@")) {
-      cMethods.displaySnackBar("Nhập 1 email hợp lệ !", context);
-    } else if (passwordTextEditingController.text.trim().length < 5) {
-      cMethods.displaySnackBar("Mật khẩu phait có ít nhất 6 ký tự", context);
-    } else {
+    if (_formKey.currentState?.validate() ?? false) {
       signInUser();
     }
   }
@@ -91,102 +87,138 @@ class _LoginScreenState extends State<LoginScreen> {
           padding: const EdgeInsets.all(10),
           child: Column(
             children: [
-              const SizedBox(
-                height: 60,
-              ),
+              const SizedBox(height: 60),
 
-              Image.asset(
-                "assets/images/uberexec.png",
-                width: 220,
-              ),
+              Image.asset("assets/images/uberexec.png", width: 220),
 
-              const SizedBox(
-                height: 30,
-              ),
+              const SizedBox(height: 30),
 
               const Text(
                 "Đăng nhập",
-                style: TextStyle(
-                  fontSize: 26,
-                  fontWeight: FontWeight.bold,
-                ),
+                style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold),
               ),
 
-              //text fields + button
+              // Form
               Padding(
                 padding: const EdgeInsets.all(22),
-                child: Column(
-                  children: [
-                    TextField(
-                      controller: emailTextEditingController,
-                      keyboardType: TextInputType.emailAddress,
-                      decoration: const InputDecoration(
-                        labelText: "Email",
-                        labelStyle: TextStyle(
-                          fontSize: 14,
+                child: Form(
+                  key: _formKey,
+                  child: Column(
+                    children: [
+                      // Email field
+                      TextFormField(
+                        controller: emailTextEditingController,
+                        keyboardType: TextInputType.emailAddress,
+                        decoration: InputDecoration(
+                          labelText: "Email",
+                          labelStyle: const TextStyle(fontSize: 14),
+                          errorText: _emailError,
+                          prefixIcon:
+                              const Icon(Icons.email, color: Colors.blue),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
                         ),
+                        style:
+                            const TextStyle(color: Colors.grey, fontSize: 15),
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Vui lòng nhập email';
+                          } else if (!value.contains("@")) {
+                            return 'Nhập 1 email hợp lệ!';
+                          }
+                          return null;
+                        },
                       ),
-                      style: const TextStyle(
-                        color: Colors.grey,
-                        fontSize: 15,
-                      ),
-                    ),
-                    const SizedBox(
-                      height: 22,
-                    ),
-                    TextField(
-                      controller: passwordTextEditingController,
-                      obscureText: true,
-                      keyboardType: TextInputType.text,
-                      decoration: const InputDecoration(
-                        labelText: "Mật khẩu",
-                        labelStyle: TextStyle(
-                          fontSize: 14,
+                      const SizedBox(height: 22),
+
+                      // Password field
+                      TextFormField(
+                        controller: passwordTextEditingController,
+                        obscureText: !_isPasswordVisible,
+                        keyboardType: TextInputType.text,
+                        decoration: InputDecoration(
+                          labelText: "Mật khẩu",
+                          labelStyle: const TextStyle(fontSize: 14),
+                          errorText: _passwordError,
+                          prefixIcon:
+                              const Icon(Icons.lock, color: Colors.blue),
+                          suffixIcon: IconButton(
+                            icon: Icon(
+                              _isPasswordVisible
+                                  ? Icons.visibility
+                                  : Icons.visibility_off,
+                              color: Colors.blue,
+                            ),
+                            onPressed: () {
+                              setState(() {
+                                _isPasswordVisible = !_isPasswordVisible;
+                              });
+                            },
+                          ),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
                         ),
+                        style:
+                            const TextStyle(color: Colors.grey, fontSize: 15),
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Vui lòng nhập mật khẩu';
+                          } else if (value.trim().length < 6) {
+                            return 'Mật khẩu phải có ít nhất 6 ký tự';
+                          }
+                          return null;
+                        },
                       ),
-                      style: const TextStyle(
-                        color: Colors.grey,
-                        fontSize: 15,
-                      ),
-                    ),
-                    const SizedBox(
-                      height: 32,
-                    ),
-                    ElevatedButton(
-                      onPressed: () {
-                        checkIfNetworkIsAvailable();
-                      },
-                      style: ElevatedButton.styleFrom(
+                      const SizedBox(height: 32),
+
+                      // Login Button
+                      ElevatedButton(
+                        onPressed: checkIfNetworkIsAvailable,
+                        style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.blue,
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 80, vertical: 10)),
-                      child: const Text(
-                        "Đăng nhập",
-                        style: TextStyle(color: Colors.white),
+                              horizontal: 80, vertical: 10),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        child: const Text(
+                          "Đăng nhập",
+                          style: TextStyle(color: Colors.white),
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
 
-              const SizedBox(
-                height: 12,
-              ),
+              const SizedBox(height: 12),
 
-              //textbutton
+              // TextButton
               TextButton(
                 onPressed: () {
                   Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                          builder: (c) => SignUpScreen(
-                                cameras: widget.cameras,
-                              )));
+                    context,
+                    MaterialPageRoute(
+                      builder: (c) => SignUpScreen(cameras: widget.cameras),
+                    ),
+                  );
                 },
-                child: const Text(
-                  "Bạn chưa có tài khoản? Đăng ký ngay!",
-                  style: TextStyle(
-                    color: Colors.black,
+                child: const Text.rich(
+                  TextSpan(
+                    text: "Bạn chưa có tài khoản? ",
+                    style: TextStyle(fontSize: 14, color: Colors.grey),
+                    children: [
+                      TextSpan(
+                        text: "Đăng ký ngay!",
+                        style: TextStyle(
+                          color: Colors.blue,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),

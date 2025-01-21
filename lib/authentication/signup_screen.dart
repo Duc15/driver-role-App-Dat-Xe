@@ -1,8 +1,8 @@
 import 'dart:io';
 import 'package:camera/camera.dart';
 import 'package:drivers_app/authentication/ask_for_info.dart';
-import 'package:drivers_app/pages/dashboard.dart';
-import 'package:drivers_app/sinh_trac_hoc/post_cmnd.dart';
+import 'package:drivers_app/authentication/login_screen.dart';
+import 'package:drivers_app/main.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:firebase_storage/firebase_storage.dart';
@@ -10,7 +10,6 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import '../methods/common_methods.dart';
 import '../widgets/loading_dialog.dart';
-import 'login_screen.dart';
 
 class SignUpScreen extends StatefulWidget {
   final List<CameraDescription> cameras;
@@ -35,12 +34,15 @@ class _SignUpScreenState extends State<SignUpScreen> {
   CommonMethods cMethods = CommonMethods();
   XFile? imageFile;
   String urlOfUploadedImage = "";
+  bool _isPasswordVisible = false; // For password visibility toggle
+
+  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
 
   checkIfNetworkIsAvailable() {
     cMethods.checkConnectivity(context);
 
-    if (imageFile != null) {
-      signUpFormValidation();
+    if (_formKey.currentState!.validate() && imageFile != null) {
+      uploadImageToStorage();
     } else {
       cMethods.displaySnackBar("Bạn quên chọn hình ảnh rồi!.", context);
     }
@@ -48,23 +50,21 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
   signUpFormValidation() {
     if (userNameTextEditingController.text.trim().length < 3) {
-      cMethods.displaySnackBar("Tên của bạn phải có ít nhất 4 ký tự", context);
+      return "Tên của bạn phải có ít nhất 4 ký tự";
     } else if (userPhoneTextEditingController.text.trim().length < 9) {
-      cMethods.displaySnackBar(
-          "Số điện thoại phải có ít nhất 10 ký tự !", context);
+      return "Số điện thoại phải có ít nhất 10 ký tự!";
     } else if (!emailTextEditingController.text.contains("@")) {
-      cMethods.displaySnackBar("Hãy điền 1 email hợp lệ !", context);
+      return "Hãy điền 1 email hợp lệ!";
     } else if (passwordTextEditingController.text.trim().length < 5) {
-      cMethods.displaySnackBar("Mật khẩu phải có ít nhất 6 ký tự !", context);
+      return "Mật khẩu phải có ít nhất 6 ký tự!";
     } else if (vehicleModelTextEditingController.text.trim().isEmpty) {
-      cMethods.displaySnackBar("Điền thông tin xe của bạn !", context);
+      return "Điền thông tin xe của bạn!";
     } else if (vehicleColorTextEditingController.text.trim().isEmpty) {
-      cMethods.displaySnackBar("Điền màu xe!!!", context);
+      return "Điền màu xe!!!";
     } else if (vehicleNumberTextEditingController.text.isEmpty) {
-      cMethods.displaySnackBar("Điền mã số xe !!!.", context);
-    } else {
-      uploadImageToStorage();
+      return "Điền mã số xe!!!";
     }
+    return null;
   }
 
   uploadImageToStorage() async {
@@ -157,130 +157,282 @@ class _SignUpScreenState extends State<SignUpScreen> {
     return Scaffold(
       body: SingleChildScrollView(
         child: Padding(
-          padding: const EdgeInsets.all(10),
-          child: Column(
-            children: [
-              const SizedBox(height: 40),
-              imageFile == null
-                  ? const CircleAvatar(
-                      radius: 86,
-                      backgroundImage:
-                          AssetImage("assets/images/avatarman.png"),
-                    )
-                  : Container(
-                      width: 180,
-                      height: 180,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: Colors.grey,
-                        image: DecorationImage(
-                          fit: BoxFit.fitHeight,
-                          image: FileImage(File(imageFile!.path)),
+          padding: const EdgeInsets.all(16),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              children: [
+                const SizedBox(height: 40),
+                imageFile == null
+                    ? const CircleAvatar(
+                        radius: 86,
+                        backgroundImage:
+                            AssetImage("assets/images/avatarman.png"),
+                      )
+                    : Container(
+                        width: 180,
+                        height: 180,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: Colors.grey,
+                          image: DecorationImage(
+                            fit: BoxFit.fitHeight,
+                            image: FileImage(File(imageFile!.path)),
+                          ),
                         ),
                       ),
-                    ),
-              const SizedBox(height: 10),
-              GestureDetector(
-                onTap: chooseImageFromGallery,
-                child: const Text(
-                  "Chọn ảnh",
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                const SizedBox(height: 10),
+                GestureDetector(
+                  onTap: chooseImageFromGallery,
+                  child: const Text(
+                    "Chọn ảnh",
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
                 ),
-              ),
-              Padding(
-                padding: const EdgeInsets.all(22),
-                child: Column(
-                  children: [
-                    TextField(
-                      controller: userNameTextEditingController,
-                      keyboardType: TextInputType.text,
-                      decoration: const InputDecoration(
-                        labelText: "Tên của bạn",
-                        labelStyle: TextStyle(fontSize: 14),
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 20),
+                  child: Column(
+                    children: [
+                      // User Name Field
+                      TextFormField(
+                        controller: userNameTextEditingController,
+                        keyboardType: TextInputType.text,
+                        decoration: InputDecoration(
+                          labelText: "Tên của bạn",
+                          labelStyle: const TextStyle(fontSize: 14),
+                          prefixIcon:
+                              const Icon(Icons.person, color: Colors.blue),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                        style:
+                            const TextStyle(color: Colors.grey, fontSize: 15),
+                        validator: (value) {
+                          if (value == null ||
+                              value.isEmpty ||
+                              value.length < 3) {
+                            return "Tên của bạn phải có ít nhất 4 ký tự";
+                          }
+                          return null;
+                        },
                       ),
-                      style: const TextStyle(color: Colors.grey, fontSize: 15),
-                    ),
-                    const SizedBox(height: 22),
-                    TextField(
-                      controller: userPhoneTextEditingController,
-                      keyboardType: TextInputType.text,
-                      decoration: const InputDecoration(
-                        labelText: "Số điện thoại",
-                        labelStyle: TextStyle(fontSize: 14),
+                      const SizedBox(height: 12),
+
+                      // Phone Number Field
+                      TextFormField(
+                        controller: userPhoneTextEditingController,
+                        keyboardType: TextInputType.phone,
+                        decoration: InputDecoration(
+                          labelText: "Số điện thoại",
+                          labelStyle: const TextStyle(fontSize: 14),
+                          prefixIcon:
+                              const Icon(Icons.phone, color: Colors.blue),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                        style:
+                            const TextStyle(color: Colors.grey, fontSize: 15),
+                        validator: (value) {
+                          if (value == null ||
+                              value.isEmpty ||
+                              value.length < 10) {
+                            return "Số điện thoại phải có ít nhất 10 ký tự";
+                          }
+                          return null;
+                        },
                       ),
-                      style: const TextStyle(color: Colors.grey, fontSize: 15),
-                    ),
-                    const SizedBox(height: 22),
-                    TextField(
-                      controller: emailTextEditingController,
-                      keyboardType: TextInputType.emailAddress,
-                      decoration: const InputDecoration(
-                        labelText: "Email",
-                        labelStyle: TextStyle(fontSize: 14),
+                      const SizedBox(height: 12),
+
+                      // Email Field
+                      TextFormField(
+                        controller: emailTextEditingController,
+                        keyboardType: TextInputType.emailAddress,
+                        decoration: InputDecoration(
+                          labelText: "Email",
+                          labelStyle: const TextStyle(fontSize: 14),
+                          prefixIcon:
+                              const Icon(Icons.email, color: Colors.blue),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                        style:
+                            const TextStyle(color: Colors.grey, fontSize: 15),
+                        validator: (value) {
+                          if (value == null ||
+                              value.isEmpty ||
+                              !value.contains("@")) {
+                            return "Hãy điền 1 email hợp lệ!";
+                          }
+                          return null;
+                        },
                       ),
-                      style: const TextStyle(color: Colors.grey, fontSize: 15),
-                    ),
-                    const SizedBox(height: 22),
-                    TextField(
-                      controller: passwordTextEditingController,
-                      obscureText: true,
-                      keyboardType: TextInputType.text,
-                      decoration: const InputDecoration(
-                        labelText: "Mật khẩu",
-                        labelStyle: TextStyle(fontSize: 14),
+                      const SizedBox(height: 12),
+
+                      // Password Field
+                      TextFormField(
+                        controller: passwordTextEditingController,
+                        obscureText: !_isPasswordVisible,
+                        decoration: InputDecoration(
+                          labelText: "Mật khẩu",
+                          labelStyle: const TextStyle(fontSize: 14),
+                          prefixIcon:
+                              const Icon(Icons.lock, color: Colors.blue),
+                          suffixIcon: IconButton(
+                            icon: Icon(
+                              _isPasswordVisible
+                                  ? Icons.visibility
+                                  : Icons.visibility_off,
+                              color: Colors.blue,
+                            ),
+                            onPressed: () {
+                              setState(() {
+                                _isPasswordVisible = !_isPasswordVisible;
+                              });
+                            },
+                          ),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                        style:
+                            const TextStyle(color: Colors.grey, fontSize: 15),
+                        validator: (value) {
+                          if (value == null ||
+                              value.isEmpty ||
+                              value.length < 6) {
+                            return "Mật khẩu phải có ít nhất 6 ký tự!";
+                          }
+                          return null;
+                        },
                       ),
-                      style: const TextStyle(color: Colors.grey, fontSize: 15),
-                    ),
-                    const SizedBox(height: 32),
-                    TextField(
-                      controller: vehicleModelTextEditingController,
-                      keyboardType: TextInputType.text,
-                      decoration: const InputDecoration(
-                        labelText: "Mẫu xe của bạn",
-                        labelStyle: TextStyle(fontSize: 14),
-                        hintText: "BMW-i8",
+                      const SizedBox(height: 12),
+
+                      // Vehicle Model Field
+                      TextFormField(
+                        controller: vehicleModelTextEditingController,
+                        keyboardType: TextInputType.text,
+                        decoration: InputDecoration(
+                          labelText: "Mẫu xe của bạn",
+                          labelStyle: const TextStyle(fontSize: 14),
+                          hintText: "BMW-i8",
+                          prefixIcon: const Icon(Icons.directions_car,
+                              color: Colors.blue),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                        style:
+                            const TextStyle(color: Colors.grey, fontSize: 15),
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return "Điền thông tin xe của bạn!";
+                          }
+                          return null;
+                        },
                       ),
-                      style: const TextStyle(color: Colors.grey, fontSize: 15),
-                    ),
-                    const SizedBox(height: 22),
-                    TextField(
-                      controller: vehicleColorTextEditingController,
-                      keyboardType: TextInputType.text,
-                      decoration: const InputDecoration(
-                        labelText: "Màu xe",
-                        labelStyle: TextStyle(fontSize: 14),
+                      const SizedBox(height: 12),
+
+                      // Vehicle Color Field
+                      TextFormField(
+                        controller: vehicleColorTextEditingController,
+                        keyboardType: TextInputType.text,
+                        decoration: InputDecoration(
+                          labelText: "Màu xe",
+                          labelStyle: const TextStyle(fontSize: 14),
+                          prefixIcon:
+                              const Icon(Icons.color_lens, color: Colors.blue),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                        style:
+                            const TextStyle(color: Colors.grey, fontSize: 15),
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return "Điền màu xe!!!";
+                          }
+                          return null;
+                        },
                       ),
-                      style: const TextStyle(color: Colors.grey, fontSize: 15),
-                    ),
-                    const SizedBox(height: 22),
-                    TextField(
-                      controller: vehicleNumberTextEditingController,
-                      keyboardType: TextInputType.text,
-                      decoration: const InputDecoration(
-                        labelText: "Biển số xe",
-                        labelStyle: TextStyle(fontSize: 14),
+                      const SizedBox(height: 12),
+
+                      // Vehicle Number Field
+                      TextFormField(
+                        controller: vehicleNumberTextEditingController,
+                        keyboardType: TextInputType.text,
+                        decoration: InputDecoration(
+                          labelText: "Biển số xe",
+                          labelStyle: const TextStyle(fontSize: 14),
+                          prefixIcon:
+                              const Icon(Icons.numbers, color: Colors.blue),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                        style:
+                            const TextStyle(color: Colors.grey, fontSize: 15),
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return "Điền mã số xe!!!";
+                          }
+                          return null;
+                        },
                       ),
-                      style: const TextStyle(color: Colors.grey, fontSize: 15),
-                    ),
-                    const SizedBox(height: 22),
-                    ElevatedButton(
-                      onPressed: checkIfNetworkIsAvailable,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.blue,
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 80,
-                          vertical: 10,
+                      const SizedBox(height: 20),
+
+                      // Register Button
+                      ElevatedButton(
+                        onPressed: checkIfNetworkIsAvailable,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.blue,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 80,
+                            vertical: 15,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                        child: const Text(
+                          "Đăng ký",
+                          style: TextStyle(color: Colors.white),
                         ),
                       ),
-                      child: const Text(
-                        "Đăng ký",
-                        style: TextStyle(color: Colors.white),
+                      const SizedBox(height: 20),
+                      TextButton(
+                        onPressed: () {
+                          Navigator.pushReplacement(
+                            context,
+                            MaterialPageRoute(
+                                builder: (c) => LoginScreen(
+                                      cameras: cameras,
+                                    )),
+                          );
+                        },
+                        child: const Text.rich(
+                          TextSpan(
+                            text: "Bạn đã có tài khoản? ",
+                            style: TextStyle(fontSize: 14, color: Colors.grey),
+                            children: [
+                              TextSpan(
+                                text: "Đăng nhập ngay!",
+                                style: TextStyle(
+                                  color: Colors.blue,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
