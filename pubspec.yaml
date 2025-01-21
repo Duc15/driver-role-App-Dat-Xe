@@ -50,6 +50,13 @@ dependencies:
   url_launcher: ^6.3.1
   restart_app:
   intl: ^0.19.0
+  camera: ^0.10.0+2
+  dio: ^5.2.1 # Thư viện HTTP để gọi API FPT.AI
+  path_provider: ^2.0.14 # Để lưu tệp tạm thời
+  image: ^4.0.17 # Để xử lý ảnh
+  fluttertoast: ^8.2.10
+  file_picker: ^5.0.0
+  flutter_spinkit: ^5.1.0
 dev_dependencies:
   flutter_test:
     sdk: flutter
