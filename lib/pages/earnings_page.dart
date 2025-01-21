@@ -1,8 +1,7 @@
-import 'package:drivers_app/pages/trips_history_page.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart'; // Thêm thư viện intl
+import 'package:intl/intl.dart';
 
 class EarningsPage extends StatefulWidget {
   const EarningsPage({super.key});
@@ -12,460 +11,426 @@ class EarningsPage extends StatefulWidget {
 }
 
 class _EarningsPageState extends State<EarningsPage> {
-  final completedTripRequestsOfCurrentDriver =
+  final DatabaseReference tripRequestsRef =
       FirebaseDatabase.instance.ref().child("tripRequests");
+  final DatabaseReference driversRef =
+      FirebaseDatabase.instance.ref().child("drivers");
 
-  // Tỷ giá USD sang VND (giả sử)
-  final double exchangeRate = 24000.0;
-  String driverEarningsUSD = "";
+  final double exchangeRate = 24000.0; // USD to VND rate
   String driverEarningsVND = "";
+  double filteredEarningsUSD = 0.0;
+  List<Map<String, dynamic>> recentTrips = [];
 
-  // Tỷ giá USD sang VND (giả sử)
+  DateTime? startDate;
+  DateTime? endDate;
 
-  getTotalEarningsOfCurrentDriver() async {
-    DatabaseReference driversRef =
-        FirebaseDatabase.instance.ref().child("drivers");
+  // Fetch the total earnings for the current driver
+  Future<void> fetchEarnings() async {
+    final uid = FirebaseAuth.instance.currentUser!.uid;
 
-    await driversRef
-        .child(FirebaseAuth.instance.currentUser!.uid)
-        .once()
-        .then((snap) {
-      if ((snap.snapshot.value as Map)["earnings"] != null) {
+    try {
+      final snapshot = await driversRef.child(uid).once();
+      if (snapshot.snapshot.value != null) {
+        final data = snapshot.snapshot.value as Map;
+        if (data["earnings"] != null) {
+          double earningsUSD =
+              double.tryParse(data["earnings"].toString()) ?? 0.0;
+          setState(() {
+            driverEarningsVND = NumberFormat("#,##0", "en_US")
+                .format(earningsUSD * exchangeRate);
+          });
+        }
+      }
+    } catch (error) {
+      print("Error fetching earnings: $error");
+    }
+  }
+
+  // Filter trips based on the date range
+  void filterTrips() async {
+    if (startDate == null || endDate == null) return;
+
+    final uid = FirebaseAuth.instance.currentUser!.uid;
+
+    try {
+      final snapshot = await tripRequestsRef.once();
+      if (snapshot.snapshot.value != null) {
+        final data = snapshot.snapshot.value as Map;
+        final tripsList = data.entries
+            .map((entry) => {"key": entry.key, ...entry.value})
+            .where((trip) {
+          DateTime tripDate = DateTime.parse(trip["publishDateTime"]);
+          return trip["status"] == "ended" &&
+              trip["driverID"] == uid &&
+              tripDate.isAfter(startDate!.subtract(const Duration(days: 1))) &&
+              tripDate.isBefore(endDate!.add(const Duration(days: 1)));
+        }).toList();
+
+        double totalEarnings = 0.0;
+        for (var trip in tripsList) {
+          totalEarnings +=
+              double.tryParse(trip["fareAmount"].toString()) ?? 0.0;
+        }
+
         setState(() {
-          // Lấy giá trị earnings từ cơ sở dữ liệu (USD)
-          driverEarningsUSD =
-              ((snap.snapshot.value as Map)["earnings"]).toString();
-
-          // Chuyển đổi sang VND
-          double earningsUSD = double.tryParse(driverEarningsUSD) ?? 0.0;
-          double earningsVND = earningsUSD * exchangeRate;
-
-          // Định dạng số tiền với dấu phẩy
-          driverEarningsVND =
-              NumberFormat("#,##0", "en_US").format(earningsVND);
+          filteredEarningsUSD = totalEarnings;
         });
       }
-    });
+    } catch (error) {
+      print("Error fetching trips: $error");
+    }
+  }
+
+  // Fetch recent trips (last 3)
+  Future<void> fetchRecentTrips() async {
+    final uid = FirebaseAuth.instance.currentUser!.uid;
+
+    try {
+      final snapshot = await tripRequestsRef.once();
+      if (snapshot.snapshot.value != null) {
+        final data = snapshot.snapshot.value as Map;
+        final trips = data.entries
+            .where((entry) =>
+                entry.value["status"] == "ended" &&
+                entry.value["driverID"] == uid)
+            .map((entry) => {"key": entry.key, ...entry.value})
+            .toList();
+
+        trips.sort((a, b) => DateTime.parse(b["publishDateTime"])
+            .compareTo(DateTime.parse(a["publishDateTime"])));
+
+        setState(() {
+          recentTrips = trips
+              .take(3)
+              .map((trip) => trip.cast<String, dynamic>())
+              .toList();
+        });
+      }
+    } catch (error) {
+      print("Error fetching trips: $error");
+    }
+  }
+
+  // Show transaction details popup
+  void showTransactionDetailDialog(
+      BuildContext context, Map<String, dynamic> trip) {
+    double fareUSD = double.tryParse(trip["fareAmount"].toString()) ?? 0.0;
+    double fareVND = fareUSD * exchangeRate;
+    String formattedFareVND = NumberFormat("#,##0", "en_US").format(fareVND);
+    DateTime paymentStartTime = DateTime.parse(trip["paymentStartTime"]);
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return Dialog(
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          child: Container(
+            padding: const EdgeInsets.all(20.0),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [Colors.blueAccent, Colors.cyan],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text(
+                  "Chi tiết chuyến đi",
+                  style: TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white),
+                ),
+                const SizedBox(height: 16),
+                _buildDetailRow(
+                    Icons.location_on, "Địa chỉ đón: ${trip["pickUpAddress"]}"),
+                const SizedBox(height: 12),
+                _buildDetailRow(Icons.location_off,
+                    "Địa chỉ trả: ${trip["dropOffAddress"]}"),
+                const SizedBox(height: 12),
+                _buildDetailRow(Icons.money, "Số tiền: $formattedFareVND VND"),
+                const SizedBox(height: 12),
+                _buildDetailRow(Icons.access_time,
+                    "Thời gian kết thúc: ${DateFormat("dd/MM/yyyy HH:mm").format(paymentStartTime)}"),
+                const SizedBox(height: 20),
+                Text("Mã chuyến đi: ${trip["key"]}",
+                    style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white)),
+                const SizedBox(height: 20),
+                ElevatedButton(
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                  },
+                  style: ElevatedButton.styleFrom(
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(15))),
+                  child: const Text("Đóng",
+                      style: TextStyle(fontSize: 18, color: Colors.black)),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  // Helper method to build row for transaction details
+  Widget _buildDetailRow(IconData icon, String text) {
+    return Row(
+      children: [
+        Icon(icon, color: Colors.white, size: 24),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Text(
+            text,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(fontSize: 16, color: Colors.white),
+          ),
+        ),
+      ],
+    );
   }
 
   @override
   void initState() {
     super.initState();
-    getTotalEarningsOfCurrentDriver();
+    fetchEarnings();
+    fetchRecentTrips();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text('Thu nhập'),
-        backgroundColor: Colors.blue,
-      ),
-      backgroundColor: Colors.grey[100],
+      appBar:
+          AppBar(title: const Text('Thu nhập'), backgroundColor: Colors.blue),
+      backgroundColor: Colors.blue[100],
       body: SingleChildScrollView(
         child: Padding(
           padding: const EdgeInsets.all(16.0),
           child: Column(
             children: [
-              // Thẻ hiển thị tài khoản và số tiền
-              Card(
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                elevation: 5,
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Tài khoản và số tài khoản
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          const Text(
-                            "Số tiền thu được",
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.grey,
-                            ),
-                          ),
-                          Text(
-                            "0112345678", // Số tài khoản
-                            style: TextStyle(
-                              fontSize: 16,
-                              color: Colors.grey[600],
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      // Số tiền và phần trăm thay đổi
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            "$driverEarningsVND VND", // Số tiền
-                            style: const TextStyle(
-                              fontSize: 28,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          Container(
-                            decoration: BoxDecoration(
-                              color: Colors.green[100],
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 4,
-                            ),
-                            child: const Text(
-                              "+5.21%", // Tăng trưởng
-                              style: TextStyle(
-                                color: Colors.green,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 16,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-                      // Các nút
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                        children: [
-                          ElevatedButton(
-                            onPressed: () {
-                              // Xử lý khi bấm nút Register
-                            },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.blue,
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 32, vertical: 14),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                            ),
-                            child: const Text(
-                              "Nút phụ",
-                              style:
-                                  TextStyle(fontSize: 16, color: Colors.white),
-                            ),
-                          ),
-                          ElevatedButton(
-                            onPressed: () {
-                              // Xử lý khi bấm nút Visit Stripe
-                            },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.blue,
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 32, vertical: 14),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                            ),
-                            child: const Text(
-                              "Nhận chuyến",
-                              style:
-                                  TextStyle(fontSize: 16, color: Colors.white),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ),
+              _buildEarningsCard(),
               const SizedBox(height: 20),
-              // Phần Activity
-
-              SafeArea(
-                child: Card(
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  elevation: 5,
-                  child: Padding(
-                    padding: const EdgeInsets.all(12.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          "Biến động số dư",
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        // Danh sách hoạt động
-                        StreamBuilder(
-                          // Stream lắng nghe thay đổi từ Firebase
-                          stream: completedTripRequestsOfCurrentDriver.onValue,
-                          builder: (BuildContext context, snapshotData) {
-                            if (snapshotData.hasError) {
-                              return const Center(
-                                child: Text(
-                                  "Có lỗi xảy ra",
-                                  style: TextStyle(color: Colors.white),
-                                ),
-                              );
-                            }
-
-                            if (!(snapshotData.hasData)) {
-                              return const Center(
-                                child: Text(
-                                  "Không có chuyến đi nào!",
-                                  style: TextStyle(color: Colors.white),
-                                ),
-                              );
-                            }
-
-                            // Chuyển dữ liệu snapshot thành danh sách các chuyến đi
-                            Map dataTrips =
-                                snapshotData.data!.snapshot.value as Map;
-                            List tripsList = [];
-                            dataTrips.forEach((key, value) =>
-                                tripsList.add({"key": key, ...value}));
-                            return ListView.builder(
-                              shrinkWrap: true,
-                              itemCount: 3,
-                              itemBuilder: ((context, index) {
-                                if (tripsList[index]["status"] != null &&
-                                    tripsList[index]["status"] == "ended" &&
-                                    tripsList[index]["driverID"] ==
-                                        FirebaseAuth
-                                            .instance.currentUser!.uid) {
-                                  // Lấy thông tin giá vé (fareAmount) và chuyển đổi sang VND
-                                  double fareUSD = double.tryParse(
-                                          tripsList[index]["fareAmount"]
-                                              .toString()) ??
-                                      0.0;
-                                  double fareVND = fareUSD * exchangeRate;
-
-                                  // Định dạng số tiền
-                                  String formattedFareVND =
-                                      NumberFormat("#,##0", "en_US")
-                                          .format(fareVND);
-
-                                  // Lấy thời gian hoàn thành (endTime) từ Firebase
-                                  String? endTime = tripsList[index][
-                                      "publishDateTime"]; // Ví dụ: "2024-11-28T15:32:10.123456Z"
-                                  String formattedDate = "";
-                                  String formattedTime = "";
-
-                                  if (endTime != null) {
-                                    // Chuyển đổi định dạng ngày giờ
-                                    DateTime parsedDate =
-                                        DateTime.parse(endTime).toLocal();
-                                    formattedDate = DateFormat("dd/MM/yyyy")
-                                        .format(parsedDate);
-                                    formattedTime =
-                                        DateFormat("HH:mm").format(parsedDate);
-                                  }
-
-                                  // Hiển thị mỗi chuyến đi
-                                  return Padding(
-                                    padding: const EdgeInsets.only(bottom: 8),
-                                    child: Card(
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius:
-                                            BorderRadius.circular(15.0),
-                                        side: const BorderSide(
-                                          color: Colors.blue,
-                                          width: 2.0,
-                                        ),
-                                      ),
-                                      color: Colors.white,
-                                      elevation: 10,
-                                      child: Padding(
-                                        padding: const EdgeInsets.symmetric(
-                                            horizontal: 15, vertical: 10),
-                                        child: Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          children: [
-                                            // Thông tin địa chỉ và giá vé
-                                            Row(
-                                              children: [
-                                                Image.asset(
-                                                  'assets/images/initial.png',
-                                                  height: 16,
-                                                  width: 16,
-                                                ),
-                                                const SizedBox(width: 18),
-                                                Expanded(
-                                                  child: Text(
-                                                    tripsList[index]
-                                                            ["pickUpAddress"]
-                                                        .toString(),
-                                                    overflow:
-                                                        TextOverflow.ellipsis,
-                                                    style: const TextStyle(
-                                                      fontSize: 18,
-                                                      color: Colors.black,
-                                                    ),
-                                                  ),
-                                                ),
-                                                const SizedBox(width: 5),
-                                                Text(
-                                                  "+$formattedFareVND VND",
-                                                  style: const TextStyle(
-                                                    fontSize: 16,
-                                                    color: Colors.green,
-                                                  ),
-                                                ),
-                                              ],
-                                            ),
-                                            const SizedBox(height: 8),
-                                            // Địa chỉ dropOff
-                                            Row(
-                                              children: [
-                                                Image.asset(
-                                                  'assets/images/final.png',
-                                                  height: 16,
-                                                  width: 16,
-                                                ),
-                                                const SizedBox(width: 18),
-                                                Expanded(
-                                                  child: Text(
-                                                    tripsList[index]
-                                                            ["dropOffAddress"]
-                                                        .toString(),
-                                                    overflow:
-                                                        TextOverflow.ellipsis,
-                                                    style: const TextStyle(
-                                                      fontSize: 18,
-                                                      color: Colors.black,
-                                                    ),
-                                                  ),
-                                                ),
-                                              ],
-                                            ),
-                                            const SizedBox(height: 8),
-                                            // Thời gian hoàn thành
-                                            Row(
-                                              mainAxisAlignment:
-                                                  MainAxisAlignment
-                                                      .spaceBetween,
-                                              children: [
-                                                Text(
-                                                  "Ngày: $formattedDate",
-                                                  style: const TextStyle(
-                                                    fontSize: 16,
-                                                    color: Colors.grey,
-                                                  ),
-                                                ),
-                                                Text(
-                                                  "Thời gian: $formattedTime",
-                                                  style: const TextStyle(
-                                                    fontSize: 16,
-                                                    color: Colors.white,
-                                                  ),
-                                                ),
-                                              ],
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    ),
-                                  );
-                                } else {
-                                  return Container();
-                                }
-                              }),
-                            );
-                          },
-                        ),
-
-                        const SizedBox(height: 16),
-                        Center(
-                          child: TextButton(
-                            onPressed: () {
-                              // Xử lý khi bấm "See All"
-                              Navigator.of(context).push(MaterialPageRoute(
-                                  builder: (context) => TripsHistoryPage()));
-                            },
-                            child: const Text(
-                              "Xem tất cả chuyến",
-                              style: TextStyle(
-                                color: Colors.blue,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 16,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
+              _buildDateRangeFilter(),
+              const SizedBox(height: 20),
+              _buildRecentTransactionsCard(),
             ],
           ),
         ),
       ),
     );
   }
-}
 
-class PayoutItem extends StatelessWidget {
-  final String title;
-  final String date;
-  final String time;
-  final String amount;
-
-  const PayoutItem({
-    Key? key,
-    required this.title,
-    required this.date,
-    required this.time,
-    required this.amount,
-  }) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8.0),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                title,
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16,
+  // Earnings card widget
+  Widget _buildEarningsCard() {
+    return Card(
+      color: Colors.white,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text("Số tiền thu được",
+                    style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.grey)),
+                Text("0112345678",
+                    style: TextStyle(fontSize: 16, color: Colors.grey[600])),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text("$driverEarningsVND VND",
+                    style: const TextStyle(
+                        fontSize: 28, fontWeight: FontWeight.bold)),
+                Container(
+                  decoration: BoxDecoration(
+                      color: Colors.green[100],
+                      borderRadius: BorderRadius.circular(8)),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  child: const Text("+5.21%",
+                      style: TextStyle(
+                          color: Colors.green,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16)),
                 ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                date,
-                style: const TextStyle(color: Colors.grey),
-              ),
-            ],
-          ),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text(
-                amount,
-                style: const TextStyle(
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // Date range filter widget
+  Widget _buildDateRangeFilter() {
+    return Card(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          children: [
+            Row(
+              children: [
+                _buildDatePicker("Chọn ngày bắt đầu", startDate, (pickedDate) {
+                  setState(() {
+                    startDate = pickedDate;
+                  });
+                }),
+                _buildDatePicker("Chọn ngày kết thúc", endDate, (pickedDate) {
+                  setState(() {
+                    endDate = pickedDate;
+                  });
+                }),
+              ],
+            ),
+            ElevatedButton(
+                onPressed: filterTrips, child: const Text("Lọc thu nhập")),
+            Text(
+              "Tổng thu nhập (lọc): ${NumberFormat("#,##0", "en_US").format(filteredEarningsUSD * exchangeRate)} VND",
+              style: const TextStyle(
+                  fontSize: 18,
                   fontWeight: FontWeight.bold,
-                  fontSize: 16,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                time,
-                style: const TextStyle(color: Colors.white),
-              ),
-            ],
-          ),
-        ],
+                  color: Colors.green),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // Date picker button helper
+  Widget _buildDatePicker(
+      String label, DateTime? selectedDate, Function(DateTime?) onDatePicked) {
+    return Expanded(
+      child: TextButton(
+        onPressed: () async {
+          DateTime? pickedDate = await showDatePicker(
+            context: context,
+            initialDate: DateTime.now(),
+            firstDate: DateTime(2000),
+            lastDate: DateTime.now(),
+          );
+          onDatePicked(pickedDate);
+        },
+        child: Text(selectedDate == null
+            ? label
+            : DateFormat("dd/MM/yyyy").format(selectedDate!)),
+      ),
+    );
+  }
+
+  // Recent transactions card widget
+  Widget _buildRecentTransactionsCard() {
+    return Card(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text("3 giao dịch gần nhất",
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 12),
+            Column(
+              children: recentTrips.map((trip) {
+                double fareUSD =
+                    double.tryParse(trip["fareAmount"].toString()) ?? 0.0;
+                double fareVND = fareUSD * exchangeRate;
+                String formattedFareVND =
+                    NumberFormat("#,##0", "en_US").format(fareVND);
+
+                DateTime tripDate = DateTime.parse(trip["paymentStartTime"]);
+
+                return Column(
+                  children: [
+                    InkWell(
+                      onTap: () {
+                        showTransactionDetailDialog(context, trip);
+                      },
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 8),
+                        child: Column(
+                          children: [
+                            Row(
+                              children: [
+                                Image.asset('assets/images/initial.png',
+                                    height: 16, width: 16),
+                                const SizedBox(width: 18),
+                                Expanded(
+                                  child: Text(
+                                    trip["pickUpAddress"].toString(),
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(fontSize: 18),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 8),
+                            Row(
+                              children: [
+                                Image.asset('assets/images/final.png',
+                                    height: 16, width: 16),
+                                const SizedBox(width: 18),
+                                Expanded(
+                                  child: Text(
+                                    trip["dropOffAddress"].toString(),
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(fontSize: 18),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            Row(
+                              children: [
+                                const Icon(Icons.access_time,
+                                    color: Colors.blue, size: 20),
+                                const SizedBox(width: 10),
+                                Text(
+                                  "Thời gian: ${DateFormat("dd/MM/yyyy HH:mm").format(tripDate)}",
+                                  style: const TextStyle(
+                                      fontSize: 16, color: Colors.black),
+                                ),
+                              ],
+                            ),
+                            Row(
+                              children: [
+                                Text(
+                                  " + $formattedFareVND VND",
+                                  style: const TextStyle(
+                                      fontSize: 16, color: Colors.green),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const Divider(),
+                  ],
+                );
+              }).toList(),
+            ),
+          ],
+        ),
       ),
     );
   }
