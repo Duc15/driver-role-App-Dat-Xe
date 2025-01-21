@@ -36,60 +36,78 @@ class _PaymentDialogState extends State<PaymentDialog> {
 
     return Dialog(
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius:
+            BorderRadius.circular(20), // Tăng độ bo góc cho hiện đại hơn
       ),
-      backgroundColor: Colors.black54,
+      backgroundColor: Colors.white, // Màu nền sáng
       child: Container(
-        margin: const EdgeInsets.all(5.0),
+        margin: const EdgeInsets.all(20.0), // Cải thiện margin
         width: double.infinity,
         decoration: BoxDecoration(
-          color: Colors.black87,
-          borderRadius: BorderRadius.circular(6),
+          gradient: LinearGradient(
+            // Thêm gradient nền sáng
+            colors: [Colors.blue.shade100, Colors.blue.shade50],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black12, // Bóng nhẹ để nổi bật
+              blurRadius: 10,
+              offset: Offset(0, 5),
+            ),
+          ],
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             const SizedBox(
-              height: 21,
+              height: 20,
             ),
-            const Text(
+            Text(
               "Thu tiền",
               style: TextStyle(
-                color: Colors.grey,
+                color: Colors.blue.shade700, // Màu chữ nổi bật hơn
+                fontSize: 24,
+                fontWeight: FontWeight.bold, // Font đậm
               ),
             ),
             const SizedBox(
-              height: 21,
+              height: 15,
             ),
             const Divider(
               height: 1.5,
-              color: Colors.white70,
+              color: Colors.blueGrey,
               thickness: 1.0,
             ),
             const SizedBox(
-              height: 16,
+              height: 20,
             ),
             Text(
               "$formattedFareAmount VND",
               style: const TextStyle(
-                color: Colors.grey,
-                fontSize: 36,
+                color: Colors.black,
+                fontSize: 45, // Tăng kích thước chữ
                 fontWeight: FontWeight.bold,
               ),
             ),
             const SizedBox(
-              height: 16,
+              height: 20,
             ),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Text(
                 "Bạn sẽ nhận ( $formattedFareAmount VND ) cho chuyến đi này. Đưa cho khách kiểm tra trước khi thanh toán",
                 textAlign: TextAlign.center,
-                style: const TextStyle(color: Colors.grey),
+                style: const TextStyle(
+                  color: Colors.black54, // Màu chữ dễ nhìn hơn
+                  fontSize: 16,
+                ),
               ),
             ),
             const SizedBox(
-              height: 31,
+              height: 30,
             ),
             ElevatedButton(
               onPressed: () {
@@ -101,15 +119,27 @@ class _PaymentDialogState extends State<PaymentDialog> {
                 // Restart.restartApp();
               },
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.green,
+                backgroundColor: Colors.green.shade400, // Màu nút hiện đại
+                padding:
+                    const EdgeInsets.symmetric(vertical: 16, horizontal: 30),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12), // Bo góc nút
+                ),
+                elevation: 5, // Bóng đổ nhẹ
               ),
               child: const Text(
-                "Nhận tiền",
+                "Đã nhận tiền",
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 18, // Tăng kích thước chữ nút
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 1.0, // Khoảng cách giữa các chữ
+                ),
               ),
             ),
             const SizedBox(
-              height: 41,
-            )
+              height: 30,
+            ),
           ],
         ),
       ),

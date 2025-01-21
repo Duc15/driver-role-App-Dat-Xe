@@ -242,7 +242,7 @@ class _HomePageState extends State<HomePage> {
                                               Navigator.pop(context);
 
                                               setState(() {
-                                                colorToShow = Colors.red;
+                                                colorToShow = Colors.pink;
                                                 titleToShow =
                                                     "Tắt trạng thái nhận chuyến";
                                                 isDriverAvailable = true;
@@ -267,11 +267,7 @@ class _HomePageState extends State<HomePage> {
                                                 ? Colors.green
                                                 : Colors.pink,
                                           ),
-                                          child: const Text(
-                                            "Đồng ý",
-                                            style:
-                                                TextStyle(color: Colors.white),
-                                          ),
+                                          child: const Text("Đồng ý"),
                                         ),
                                       ),
                                     ],

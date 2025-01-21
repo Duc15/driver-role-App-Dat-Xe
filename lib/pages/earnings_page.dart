@@ -255,7 +255,7 @@ class _EarningsPageState extends State<EarningsPage> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(driverEarningsVND,
+                Text("$driverEarningsVND VND",
                     style: const TextStyle(
                         fontSize: 28, fontWeight: FontWeight.bold)),
                 Container(
