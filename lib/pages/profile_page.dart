@@ -2,6 +2,7 @@ import 'package:drivers_app/global/global_var.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -221,12 +222,14 @@ class _ProfilePageState extends State<ProfilePage> {
                                     ),
                                   ),
                                   const SizedBox(height: 4),
-                                  const Text(
-                                    "Đánh giá trung bình",
-                                    style: TextStyle(
-                                      fontSize: 14,
-                                      color: Colors.grey,
+                                  RatingBarIndicator(
+                                    rating: double.tryParse(_ratings) ?? 0.0,
+                                    itemBuilder: (context, index) => const Icon(
+                                      Icons.star,
+                                      color: Colors.amber,
                                     ),
+                                    itemCount: 5,
+                                    itemSize: 24.0,
                                   ),
                                 ],
                               ),

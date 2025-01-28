@@ -51,6 +51,7 @@ dependencies:
   restart_app:
   intl: ^0.19.0
   camera: ^0.10.0+2
+  flutter_rating_bar: ^4.0.1
   dio: ^5.2.1 # Thư viện HTTP để gọi API FPT.AI
   path_provider: ^2.0.14 # Để lưu tệp tạm thời
   image: ^4.0.17 # Để xử lý ảnh

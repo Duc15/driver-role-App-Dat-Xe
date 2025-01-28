@@ -1,266 +1,64 @@
-import 'dart:convert';
-import 'dart:io';
-import 'package:camera/camera.dart';
-import 'package:drivers_app/sinh_trac_hoc/check_video.dart';
-import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
-import 'package:path_provider/path_provider.dart';
-import 'package:http/http.dart' as http;
+import 'package:camera/camera.dart';
+import 'package:drivers_app/sinh_trac_hoc/post_cmnd.dart';
 
-class UploadCMNDScreen extends StatefulWidget {
-  final String userId;
+class SuccessScreen extends StatelessWidget {
   final List<CameraDescription> cameras;
+  final String userId;
 
-  const UploadCMNDScreen({
-    Key? key,
-    required this.userId,
+  const SuccessScreen({
+    super.key,
     required this.cameras,
-  }) : super(key: key);
-
-  @override
-  _UploadCMNDScreenState createState() => _UploadCMNDScreenState();
-}
-
-class _UploadCMNDScreenState extends State<UploadCMNDScreen> {
-  File? _selectedImageFront; // Ảnh mặt trước CMND
-  File? _selectedImageBack; // Ảnh mặt sau CMND
-  Map<String, dynamic>? _cmndData;
-  bool _isLoading = false;
-
-  Future<void> _pickImageFront() async {
-    final result = await FilePicker.platform.pickFiles(type: FileType.image);
-    if (result != null && result.files.single.path != null) {
-      setState(() {
-        _selectedImageFront = File(result.files.single.path!);
-      });
-
-      final directory = await getTemporaryDirectory();
-      final tempPath = '${directory.path}/temp_cmnd_front.jpg';
-      await _selectedImageFront?.copy(tempPath);
-
-      print("Ảnh CMND mặt trước đã lưu tạm tại: $tempPath");
-    } else {
-      _showErrorDialog("Không có ảnh được chọn.");
-    }
-  }
-
-  Future<void> _pickImageBack() async {
-    final result = await FilePicker.platform.pickFiles(type: FileType.image);
-    if (result != null && result.files.single.path != null) {
-      setState(() {
-        _selectedImageBack = File(result.files.single.path!);
-      });
-
-      final directory = await getTemporaryDirectory();
-      final tempPath = '${directory.path}/temp_cmnd_back.jpg';
-      await _selectedImageBack?.copy(tempPath);
-
-      print("Ảnh CMND mặt sau đã lưu tạm tại: $tempPath");
-    } else {
-      _showErrorDialog("Không có ảnh được chọn.");
-    }
-  }
-
-  Future<void> _scanCMND() async {
-    if (_selectedImageFront == null) {
-      _showErrorDialog("Vui lòng chọn ảnh CMND mặt trước.");
-      return;
-    }
-
-    setState(() {
-      _isLoading = true;
-    });
-    _showLoadingDialog();
-
-    final request = http.MultipartRequest(
-      'POST',
-      Uri.parse('https://api.fpt.ai/vision/idr/vnm'),
-    );
-    request.headers['api-key'] = 'zJgN86n7LhUxANXif1XtGpTLCIXpLFLy';
-    request.files.add(await http.MultipartFile.fromPath(
-      'image',
-      _selectedImageFront!.path,
-    ));
-
-    try {
-      final response = await request.send();
-      if (response.statusCode == 200) {
-        final responseBody = await response.stream.bytesToString();
-        final Map<String, dynamic> jsonResponse = jsonDecode(responseBody);
-
-        if (jsonResponse['errorCode'] == 0 && jsonResponse['data'] != null) {
-          setState(() {
-            _cmndData = jsonResponse['data'][0];
-          });
-          print('Dữ liệu CMND: $_cmndData');
-        } else {
-          _showErrorDialog('Không tìm thấy dữ liệu hợp lệ.');
-        }
-      } else {
-        _showErrorDialog('Lỗi API: ${response.statusCode}');
-      }
-    } catch (e) {
-      _showErrorDialog('Lỗi kết nối: $e');
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-        Navigator.of(context).pop();
-      }
-    }
-  }
-
-  void _goToLiveVideoCheck() async {
-    if (_selectedImageFront != null) {
-      await _scanCMND();
-      if (_cmndData != null) {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => LiveVideoCheck(
-              imagePath: _selectedImageFront!.path,
-              userId: widget.userId,
-              cmndData: _cmndData!,
-            ),
-          ),
-        );
-      } else {
-        _showErrorDialog("Vui lòng tải lên ảnh CMND mặt trước hợp lệ!");
-      }
-    } else {
-      _showErrorDialog("Vui lòng chọn ảnh CMND trước.");
-    }
-  }
-
-  void _showErrorDialog(String message) {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text("Lỗi"),
-          content: Text(message),
-          actions: <Widget>[
-            TextButton(
-              child: const Text("OK"),
-              onPressed: () {
-                Navigator.of(context).pop();
-                if (_isLoading) {
-                  Navigator.of(context).pop();
-                }
-              },
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  void _showLoadingDialog() {
-    if (_isLoading) {
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (BuildContext context) {
-          return Dialog(
-            backgroundColor: Colors.transparent,
-            child: Center(
-              child: Container(
-                padding: const EdgeInsets.all(20.0),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: const Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    CircularProgressIndicator(),
-                    SizedBox(height: 15),
-                    Text("Đang kiểm tra ảnh chứng minh nhân dân",
-                        style: TextStyle(fontSize: 16)),
-                  ],
-                ),
-              ),
-            ),
-          );
-        },
-      );
-    }
-  }
+    required this.userId,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Tải lên ảnh CMND")),
+      backgroundColor: Colors.white,
       body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              if (_selectedImageFront != null)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 20.0),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(8.0),
-                    child: Image.file(_selectedImageFront!),
+        padding: const EdgeInsets.symmetric(horizontal: 24),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const SizedBox(height: 140),
+            const Icon(Icons.check_circle, color: Colors.green, size: 120),
+            const SizedBox(height: 24),
+            const Text(
+              "Đăng ký thành công!",
+              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              "Hãy bắt đầu xác minh danh tính để tiếp tục sử dụng ứng dụng.",
+              style: TextStyle(fontSize: 16, color: Colors.black54),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 40),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => UploadCMNDScreen(
+                      userId: userId,
+                      cameras: cameras,
+                    ),
                   ),
-                ),
-              ElevatedButton(
-                onPressed: _pickImageFront,
-                style: ElevatedButton.styleFrom(
-                  foregroundColor: Colors.white,
-                  backgroundColor: Colors.blueAccent,
-                  padding:
-                      const EdgeInsets.symmetric(vertical: 15, horizontal: 30),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-                child: const Text("Chọn ảnh CMND mặt trước",
-                    style: TextStyle(fontSize: 16)),
+                );
+              },
+              style: ElevatedButton.styleFrom(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                backgroundColor: Colors.blue,
               ),
-              const SizedBox(height: 20),
-              if (_selectedImageBack != null)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 20.0),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(8.0),
-                    child: Image.file(_selectedImageBack!),
-                  ),
-                ),
-              ElevatedButton(
-                onPressed: _pickImageBack,
-                style: ElevatedButton.styleFrom(
-                  foregroundColor: Colors.white,
-                  backgroundColor: Colors.orangeAccent,
-                  padding:
-                      const EdgeInsets.symmetric(vertical: 15, horizontal: 30),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-                child: const Text("Chọn ảnh CMND mặt sau",
-                    style: TextStyle(fontSize: 16)),
+              child: const Text(
+                "Bắt đầu xác minh danh tính",
+                style: TextStyle(color: Colors.white),
               ),
-              const SizedBox(height: 20),
-              ElevatedButton(
-                onPressed: _goToLiveVideoCheck,
-                style: ElevatedButton.styleFrom(
-                  foregroundColor: Colors.white,
-                  backgroundColor: Colors.greenAccent,
-                  padding:
-                      const EdgeInsets.symmetric(vertical: 15, horizontal: 30),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-                child: const Text("Bắt đầu xác minh",
-                    style: TextStyle(fontSize: 16)),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
