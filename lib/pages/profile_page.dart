@@ -127,6 +127,7 @@ class _ProfilePageState extends State<ProfilePage> {
     return Scaffold(
       backgroundColor: Colors.blueGrey[50],
       appBar: AppBar(
+        automaticallyImplyLeading: false,
         title: const Text('Thông tin cá nhân'),
         backgroundColor: Colors.blueAccent,
         elevation: 0,
