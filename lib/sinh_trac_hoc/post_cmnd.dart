@@ -391,109 +391,130 @@ class _UploadCMNDScreenState extends State<UploadCMNDScreen> {
   }
 
   void _showLoadingDialog() {
-    if (_isLoading) {
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (BuildContext context) {
-          return Dialog(
-            backgroundColor: Colors.transparent,
-            child: Center(
-              child: Container(
-                padding: const EdgeInsets.all(20.0),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: const Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    CircularProgressIndicator(),
-                    SizedBox(height: 15),
-                    Text("Đang kiểm tra ảnh chứng minh nhân dân",
-                        style: TextStyle(fontSize: 16)),
-                  ],
-                ),
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          child: Center(
+            child: Container(
+              padding: const EdgeInsets.all(20.0),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const CircularProgressIndicator(),
+                  const SizedBox(height: 15),
+                  const Text(
+                    "Đang kiểm tra ảnh chứng minh nhân dân...",
+                    style: TextStyle(fontSize: 16),
+                  ),
+                  const SizedBox(height: 15),
+                  ElevatedButton(
+                    onPressed: () {
+                      setState(() {
+                        _isLoading = false;
+                      });
+                      Navigator.of(context).pop(); // Đóng hộp thoại
+                    },
+                    style: ElevatedButton.styleFrom(
+                      foregroundColor: Colors.white,
+                      backgroundColor: Colors.redAccent,
+                      padding: const EdgeInsets.symmetric(
+                          vertical: 10, horizontal: 20),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                    child: const Text("Hủy bỏ"),
+                  ),
+                ],
               ),
             ),
-          );
-        },
-      );
-    }
+          ),
+        );
+      },
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text("Tải lên ảnh CMND")),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              if (_selectedImageFront != null)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 20.0),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(8.0),
-                    child: Image.file(_selectedImageFront!),
+      body: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                if (_selectedImageFront != null)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 20.0),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(8.0),
+                      child: Image.file(_selectedImageFront!),
+                    ),
                   ),
-                ),
-              ElevatedButton(
-                onPressed: _pickImageFront,
-                style: ElevatedButton.styleFrom(
-                  foregroundColor: Colors.white,
-                  backgroundColor: Colors.blueAccent,
-                  padding:
-                      const EdgeInsets.symmetric(vertical: 15, horizontal: 30),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+                ElevatedButton(
+                  onPressed: _pickImageFront,
+                  style: ElevatedButton.styleFrom(
+                    foregroundColor: Colors.white,
+                    backgroundColor: Colors.blueAccent,
+                    padding: const EdgeInsets.symmetric(
+                        vertical: 15, horizontal: 30),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                   ),
+                  child: const Text("Chọn ảnh CMND mặt trước",
+                      style: TextStyle(fontSize: 16)),
                 ),
-                child: const Text("Chọn ảnh CMND mặt trước",
-                    style: TextStyle(fontSize: 16)),
-              ),
-              const SizedBox(height: 20),
-              if (_selectedImageBack != null)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 20.0),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(8.0),
-                    child: Image.file(_selectedImageBack!),
+                const SizedBox(height: 20),
+                if (_selectedImageBack != null)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 20.0),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(8.0),
+                      child: Image.file(_selectedImageBack!),
+                    ),
                   ),
-                ),
-              ElevatedButton(
-                onPressed: _pickImageBack,
-                style: ElevatedButton.styleFrom(
-                  foregroundColor: Colors.white,
-                  backgroundColor: Colors.orangeAccent,
-                  padding:
-                      const EdgeInsets.symmetric(vertical: 15, horizontal: 30),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+                ElevatedButton(
+                  onPressed: _pickImageBack,
+                  style: ElevatedButton.styleFrom(
+                    foregroundColor: Colors.white,
+                    backgroundColor: Colors.orangeAccent,
+                    padding: const EdgeInsets.symmetric(
+                        vertical: 15, horizontal: 30),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                   ),
+                  child: const Text("Chọn ảnh CMND mặt sau",
+                      style: TextStyle(fontSize: 16)),
                 ),
-                child: const Text("Chọn ảnh CMND mặt sau",
-                    style: TextStyle(fontSize: 16)),
-              ),
-              const SizedBox(height: 20),
-              ElevatedButton(
-                onPressed: _goToLiveVideoCheck,
-                style: ElevatedButton.styleFrom(
-                  foregroundColor: Colors.white,
-                  backgroundColor: Colors.greenAccent,
-                  padding:
-                      const EdgeInsets.symmetric(vertical: 15, horizontal: 30),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+                const SizedBox(height: 20),
+                ElevatedButton(
+                  onPressed: _goToLiveVideoCheck,
+                  style: ElevatedButton.styleFrom(
+                    foregroundColor: Colors.white,
+                    backgroundColor: Colors.greenAccent,
+                    padding: const EdgeInsets.symmetric(
+                        vertical: 15, horizontal: 30),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                   ),
+                  child: const Text("Bắt đầu xác minh",
+                      style: TextStyle(fontSize: 16)),
                 ),
-                child: const Text("Bắt đầu xác minh",
-                    style: TextStyle(fontSize: 16)),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
