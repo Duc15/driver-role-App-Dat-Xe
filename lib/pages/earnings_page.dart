@@ -209,8 +209,10 @@ class _EarningsPageState extends State<EarningsPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar:
-          AppBar(title: const Text('Thu nhập'), backgroundColor: Colors.blue),
+      appBar: AppBar(
+          automaticallyImplyLeading: false,
+          title: const Text('Thu nhập'),
+          backgroundColor: Colors.blue),
       backgroundColor: Colors.blue[100],
       body: SingleChildScrollView(
         child: Padding(
