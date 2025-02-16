@@ -7,7 +7,7 @@
 
 
     <application
-        android:label="drivers_app"
+        android:label="Fit-Hau Tài Xế"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity
