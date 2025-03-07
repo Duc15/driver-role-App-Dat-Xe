@@ -310,7 +310,7 @@ class _UploadCMNDScreenState extends State<UploadCMNDScreen> {
       'POST',
       Uri.parse('https://api.fpt.ai/vision/idr/vnm'),
     );
-    request.headers['api-key'] = 'zJgN86n7LhUxANXif1XtGpTLCIXpLFLy';
+    request.headers['api-key'] = '9t8Eixst0BZpJWv20nbRWR6P8Q8fiFMO';
     request.files.add(await http.MultipartFile.fromPath(
       'image',
       _selectedImageFront!.path,

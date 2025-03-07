@@ -7,7 +7,7 @@
 
 
     <application
-        android:label="Fit-Hau Tài Xế"
+        android:label="drivers_app"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity
@@ -38,7 +38,7 @@
             android:name="flutterEmbedding"
             android:value="2" />
         <meta-data android:name="com.google.android.geo.API_KEY"
-            android:value="AIzaSyA9ogpvvgBYI2-GqkTviczQdoNU94HYPS4"/>
+            android:value="AIzaSyDk4fssOnC_UtZ2bGu8LzWAPw3HT39-22M"/>
     </application>
     <!-- Required to query activities that can process text, see:
          https://developer.android.com/training/package-visibility and

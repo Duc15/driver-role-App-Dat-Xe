@@ -37,7 +37,7 @@
 	<key>CFBundleVersion</key>
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
 	<key>GMSApiKey</key>
-	<string>AIzaSyA9ogpvvgBYI2-GqkTviczQdoNU94HYPS4</string>
+	<string>AIzaSyDk4fssOnC_UtZ2bGu8LzWAPw3HT39-22M</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>NSLocationWhenInUseUsageDescription</key>

@@ -60,7 +60,7 @@ class CommonMethods {
     }
   }
 
-  ///Directions API
+  ///Lấy thông tin chỉ đường giữa 2 điểm
   static Future<DirectionDetails?> getDirectionDetailsFromAPI(
       LatLng source, LatLng destination) async {
     String urlDirectionsAPI =
@@ -73,17 +73,17 @@ class CommonMethods {
     }
 
     DirectionDetails detailsModel = DirectionDetails();
-
+//khoảng cách
     detailsModel.distanceTextString =
         responseFromDirectionsAPI["routes"][0]["legs"][0]["distance"]["text"];
     detailsModel.distanceValueDigits =
         responseFromDirectionsAPI["routes"][0]["legs"][0]["distance"]["value"];
-
+//thời gian di chuyển
     detailsModel.durationTextString =
         responseFromDirectionsAPI["routes"][0]["legs"][0]["duration"]["text"];
     detailsModel.durationValueDigits =
         responseFromDirectionsAPI["routes"][0]["legs"][0]["duration"]["value"];
-
+//tạo đường chỉ dẫn
     detailsModel.encodedPoints =
         responseFromDirectionsAPI["routes"][0]["overview_polyline"]["points"];
 
@@ -94,7 +94,7 @@ class CommonMethods {
   calculateFareAmount(DirectionDetails directionDetails) {
     double distancePerKmAmount = 0.4; // giá tiền mỗi km
     double durationPerMinuteAmount = 0.01; // giá tiền mỗi phút
-    double baseFareAmount = 1; // phí cơ bản
+    double baseFareAmount = 1; // phí mở cửa
 
     double totalDistanceTravelFareAmount =
         (directionDetails.distanceValueDigits! / 1000) *

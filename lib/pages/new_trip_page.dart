@@ -532,7 +532,7 @@ class _NewTripPageState extends State<NewTripPage> {
 
                     const SizedBox(height: 15),
 
-                    // Drop-off Location
+                    // Điểm trả khách
                     Row(
                       children: [
                         Image.asset(

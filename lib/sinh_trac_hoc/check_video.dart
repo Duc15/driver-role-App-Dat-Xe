@@ -121,7 +121,7 @@ class _FaceVerificationScreenState extends State<FaceVerificationScreen> {
         Uri.parse('https://api.fpt.ai/dmp/liveness/v3'),
       );
 
-      request.headers['api-key'] = 'zJgN86n7LhUxANXif1XtGpTLCIXpLFLy';
+      request.headers['api-key'] = '9t8Eixst0BZpJWv20nbRWR6P8Q8fiFMO';
       request.files.add(
           await http.MultipartFile.fromPath('video', _recordedVideo!.path));
       request.files.add(await http.MultipartFile.fromPath(
